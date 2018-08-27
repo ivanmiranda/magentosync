@@ -1,0 +1,27 @@
+{
+    "require": {
+        "php": "^5.3.3 || ^7.0",
+        "sincco/sfphp": "^2.0",
+        "fbourigault/composer-mkdir": "^2.0",
+        "guzzlehttp/guzzle": "^6.3"
+    },
+    "scripts": {
+		"post-install-cmd": [
+			"Fbourigault\\ComposerMkdir\\ScriptHandler::mkdirs"
+		],
+		"post-update-cmd": [
+			"Fbourigault\\ComposerMkdir\\ScriptHandler::mkdirs"
+		]
+	},
+	"extra": {
+		"fbourigault-composer-mkdir": [
+			"var/cache",
+			"var/indexer",
+			"var/log",
+			"var/session",
+			"var/tmp",
+			"etc/config",
+			"bkp"
+		]
+	}
+}

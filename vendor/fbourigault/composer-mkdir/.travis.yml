@@ -1,0 +1,17 @@
+language: php
+
+sudo: false
+
+php:
+    - 5.3
+    - 5.4
+    - 5.5
+    - 5.6
+    - 7
+    - hhvm
+
+before_script:
+    - composer self-update
+    - composer update
+
+script: vendor/bin/phing
