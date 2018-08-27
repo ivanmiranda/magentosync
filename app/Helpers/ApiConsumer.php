@@ -5,40 +5,23 @@ use Desarrolla2\Cache\Adapter\File;
 
 final class ApiConsumerHelper extends \Sincco\Sfphp\Abstracts\Helper {
 
-	public static function client() {
-		return new \GuzzleHttp\Client(['base_uri'=>'https://integration-5ojmyuq-g46zmjprelses.us-3.magentosite.cloud/rest/V1/']);
-	}
-
-	public static function getToken() {
-		try {
-			$client = self::client();
-			$response = $client->request('POST', 'integration/admin/token', ['json'=>['username'=>'apigp', 'password'=>'p4t1t0l0c0#']]);
-			if ($response->getStatusCode() == 200) {
-				return str_replace('"', '', $response->getBody());
-			} else {
-				return false;
-			}
- 		} catch(\GuzzleHttp\Exception\ClientException $e) {
- 			return false;
- 		}
-	}
-
- 	public static function authenticate() {
- 		$adapter = new File(PATH_CACHE);
-		$adapter->setOption('ttl', 18000);
-		$cache = new Cache($adapter);
-		if(is_null($cache->get('token'))) {
-			$token = self::getToken();
-			$cache->set('token', $token, 18000);
-		} else {
-			$token = $cache->get('token');
+	public static function getLastSync($section) {
+		$lastSync = [];
+		if (file_exists(PATH_ROOT . '/var/data/last_sync.json')) {
+			$lastSync = json_decode(file_get_contents(PATH_ROOT . '/var/data/last_sync.json'));
 		}
-		return $token;
+		if (isset($lastSync[$section])) {
+			$lastSync = $lastSync[$section];
+		} else {
+			$lastSync = '2018-01-01 00:00:01';
+		}
+		return $lastSync;
 	}
 
-	public static function updStock($token, $sku, $qty) {
+	public static function updStock($sku, $qty) {
 		try {
-			$client = self::client();
+			$token = self::helper('ApiClient')->authenticate();
+			$client = self::helper('ApiClient')->client();
 			$response = $client->request('PUT', 'products/' . $sku . '/stockItems/1', ['headers'=>['Authorization'=>'Bearer ' . $token, 'Content-Type'=>'application/json'], 'json'=>['stockItem'=>['qty'=>$qty]]]);
 			if ($response->getStatusCode() == 200) {
 				return $response->getBody();
@@ -46,16 +29,33 @@ final class ApiConsumerHelper extends \Sincco\Sfphp\Abstracts\Helper {
 				return $response->getStatusCode();
 			}
 		} catch(\GuzzleHttp\Exception\RequestException $e) {
- 			var_dump($e->getResponse());
+ 			return false;
  		}
 	}
 
-	public static function productsList($token) {
+	public static function getOrders() {
+		$lastSync = self::getLastSync('orders');
+
+		$searchCriteria = 
+			"searchCriteria[filter_groups][0][filters][0][field]=created_at&" .
+			"searchCriteria[filter_groups][0][filters][0][value]=" . $lastSync . "&" .
+			"searchCriteria[filter_groups][0][filters][0][condition_type]=from";
+
+		// self::helper('Log')->log('orders?' . urlencode($searchCriteria)); die();
+
 		try {
-			$client = self::client();
-			$response = $client->request('GET', 'orders', ['headers'=>['Authorization'=>'Bearer ' . $token]]);
+			$token = self::helper('ApiClient')->authenticate();
+			$client = self::helper('ApiClient')->client();
+			$response = $client->request('GET', 'orders?' . $searchCriteria,  ['headers'=>['Authorization'=>'Bearer ' . $token, 'Content-Type'=>'application/json']]);
 			if ($response->getStatusCode() == 200) {
-				return $response->getBody();
+				$response = json_decode($response->getBody(), true);
+				// self::helper('Log')->log('orders ',$response['items']);die();
+				if (isset($response['items'])) {
+					$response = $response['items'];
+				} else {
+					$response = [];
+				}
+				return $response;
 			} else {
 				return false;
 			}
