@@ -10,6 +10,7 @@ class ProductsCommand extends Sincco\Sfphp\Abstracts\Command {
 		$query = "
 			SELECT ITEMNMBR, STNDCOST, CURRCOST, TAXOPTNS, PRCLEVEL, MAX(BGNGQTY) QTY 
 			FROM CA_vw_Magento_InventoryItems 
+			WHERE ITEMNMBR = '1801-01'
 			GROUP BY ITEMNMBR, STNDCOST, CURRCOST, TAXOPTNS, PRCLEVEL;";
 		foreach ($model->getCollection($query) as $product) {
 			$response = $this->helper('ApiConsumer')->updStock(trim($product->ITEMNMBR), trim($product->QTY));

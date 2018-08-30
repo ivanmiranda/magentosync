@@ -35,7 +35,7 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 		$query = "SELECT * FROM CA_vw_Magento_CustomerInformation WHERE CUSTNAME='" . $customer['firstname'] . " " . $customer['lastname'] . "';";
 		$_customerData = $model->getData($query);
 		if (count($_customerData) > 0) {
-			return $_customerData['CUSTNMBR'];
+			return "WEB" . $customer['id']; //$_customerData['CUSTNMBR'];
 		} else {
 			$address = $customer['addresses'][0];
 			$query = "
@@ -46,6 +46,7 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 				EXEC	@return_value = taUpdateCreateCustomerRcd
 						@I_vCUSTNMBR = N'WEB" . $customer['id'] . "',
 						@I_vCUSTNAME = N'" . $customer['firstname'] . " " . $customer['lastname'] . "',
+						@I_vADRSCODE='PRIMARY',
 						@I_vSHRTNAME = N'" . $customer['email'] . "',
 						@I_vADDRESS1 = N'" . $address['street'][0] . "',
 						@I_vADDRESS2 = N'" . (isset($address['street'][1]) ? $address['street'][1] : " ") . "',
@@ -55,6 +56,7 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 						@I_vZIPCODE = N'" . $address['postcode'] . "',
 						@I_vCCode = N'" . $address['region']['region_code'] . "',
 						@I_vPHNUMBR1 = N'" . $address['telephone'] . "',
+						@I_vCRLMTTYP = 1,
 						@O_iErrorState = @O_iErrorState OUTPUT,
 						@oErrString = @oErrString OUTPUT
 
@@ -66,7 +68,7 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 			$response = $model->getData($query);
 			if (isset($response['ERROR'])) {
 				$this->helper('Log')->log($query);
-				return false;
+				return "WEB" . $customer['id'];
 			} else {
 				return "WEB" . $customer['id'];
 			}
@@ -82,7 +84,7 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 				@O_iErrorState int,
 				@oErrString varchar(255);
 
-		EXEC	@return_value = [dbo].[taSopHdrIvcInsert]
+		EXEC	@return_value = taSopHdrIvcInsert
 		@I_vSOPTYPE = 2,
 		@I_vDOCID = N'" . $order['SOPNUMBER'] . "',
 		@I_vSOPNUMBE = N'" . $order['SOPNUMBER'] . "',
@@ -134,13 +136,14 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 					@O_iErrorState int,
 					@oErrString varchar(255);
 
-				EXEC	@return_value = [dbo].[taSopLineIvcInsert]
+				EXEC	@return_value = taSopLineIvcInsert
 						@I_vSOPTYPE = 2,
 						@I_vSOPNUMBE = N'" . $order['SOPNUMBER'] . "',
 						@I_vCUSTNMBR = N'" . $order['CUSTNMBR'] . "',
 						@I_vDOCDATE = N'" . $order['created_at'] . "',
 						@I_vITEMNMBR = N'" . $item['sku'] . "',
 						@I_vUNITPRCE = " . $item['price'] . ",
+						@I_vXTNDPRCE = " . $item['price'] . ",
 						@I_vQUANTITY = " . $item['qty_ordered'] . ",
 						@I_vTAXAMNT = " . $tax . ",
 						@O_iErrorState = @O_iErrorState OUTPUT,
@@ -173,19 +176,20 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 			}
 			$this->helper('Log')->log('Register order ' . $order['increment_id'] . ' as ' . $gpId);
 			$order['CUSTNMBR'] = $this->getCustomerId($order['customer_id']);
-			if ($order['CUSTNMBR']) {
+			//if ($order['CUSTNMBR']) {
 				$order['SOPNUMBER'] = trim($gpId);
-				if ($this->orderHdr($order)) {
-					$this->orderLine($order);
+				//if (
+					$this->orderLine($order);//) {
+					$this->orderHdr($order);
 					$next = true;
-				} else {
-					$next = false;
-					echo '[ERROR] when Register order ' . $order['increment_id'] . ' as ' . $gpId . PHP_EOL;
-				}
-			} else {
-				$next = false;
-					echo '[ERROR] when Register customer ' . $order['customer_email'] . ' for order ' . $order['increment_id'] . PHP_EOL;
-			}
+				// } else {
+				// 	$next = false;
+				// 	echo '[ERROR] when Register order ' . $order['increment_id'] . ' as ' . $gpId . PHP_EOL;
+				// }
+			// } else {
+			// 	$next = false;
+			// 		echo '[ERROR] when Register customer ' . $order['customer_email'] . ' for order ' . $order['increment_id'] . PHP_EOL;
+			// }
 		}
 
 		$model = $this->getModel('Default');
