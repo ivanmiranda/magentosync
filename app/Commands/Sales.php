@@ -68,7 +68,7 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 				$this->helper('Log')->log($query);
 				return false;
 			} else {
-				return true;
+				return "WEB" . $customer['id'];
 			}
 		}
 	}
