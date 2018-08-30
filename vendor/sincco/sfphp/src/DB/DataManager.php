@@ -57,7 +57,7 @@ class DataManager extends Connector {
 			$this->sQuery->execute();
 		} catch (\PDOException $err) {
 			Logger::error('Base de Datos', [$err, $err, $err->getFile(), $err->getLine()]);
-			return false;
+			return -666;
 		}
 		
 		$this->parameters = array();
@@ -103,7 +103,8 @@ class DataManager extends Connector {
 				case 'delete':
 					$response = $this->sQuery->rowCount();
 				default:
-					$response = NULL;
+					$response = $this->sQuery->errorInfo();
+					$response['ERROR'] = true;
 					break;
 			}
 		}
@@ -164,6 +165,7 @@ class DataManager extends Connector {
 			return $result;
 		} catch (\PDOException $err) {
 			Logger::error('Base de Datos', [$err, $err, $err->getFile(), $err->getLine()]);
+			return -666;
 		}
 	}
 }

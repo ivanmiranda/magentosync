@@ -21,7 +21,7 @@ class Connector extends \PDO {
 	public function __construct($connectionData) {
 		try{
 			//$dbh= new PDO('odbc:dynamics', 'ipascualTEST', 'p4t1t0l0c0');
-			parent::__construct('odbc:dynamics', 'ipascualTEST', 'p4t1t0l0c0');
+			parent::__construct('odbc:dynamics', 'ipascualTEST', 'p4t1t0l0c0#');
 			$this->setAttribute(self::ATTR_ERRMODE, self::ERRMODE_EXCEPTION);
 			$this->setAttribute(self::ATTR_EMULATE_PREPARES, false);
 			$stmt = $this->prepare("use TEST");

@@ -40,7 +40,6 @@ final class ApiConsumerHelper extends \Sincco\Sfphp\Abstracts\Helper {
 			"searchCriteria[filter_groups][0][filters][0][field]=created_at&" .
 			"searchCriteria[filter_groups][0][filters][0][value]=" . $lastSync . "&" .
 			"searchCriteria[filter_groups][0][filters][0][condition_type]=from";
-
 		// self::helper('Log')->log('orders?' . urlencode($searchCriteria)); die();
 
 		try {
@@ -55,6 +54,22 @@ final class ApiConsumerHelper extends \Sincco\Sfphp\Abstracts\Helper {
 				} else {
 					$response = [];
 				}
+				return $response;
+			} else {
+				return false;
+			}
+		} catch(\GuzzleHttp\Exception\ClientException $e) {
+ 			return false;
+ 		}
+	}
+
+	public static function getCustomer($id) {
+		try {
+			$token = self::helper('ApiClient')->authenticate();
+			$client = self::helper('ApiClient')->client();
+			$response = $client->request('GET', 'customers/' . $id,  ['headers'=>['Authorization'=>'Bearer ' . $token, 'Content-Type'=>'application/json']]);
+			if ($response->getStatusCode() == 200) {
+				$response = json_decode($response->getBody(), true);
 				return $response;
 			} else {
 				return false;
