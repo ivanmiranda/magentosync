@@ -81,6 +81,44 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 
 		$query = "
 		DECLARE	@return_value int,
+		@O_iErrorState int,
+		@oErrString varchar(255);  		
+		EXEC	@return_value = taSopHdrIvcInsert 
+				@I_vSOPTYPE = 2,
+				@I_vDOCID = N'WEB',
+				@I_vSOPNUMBE = N'ORD0362437',
+				@I_vORIGNUMB = N'000000999',
+				@I_vTAXAMNT = 0,
+				@I_vFREIGHT = 10.50,
+				@I_vLOCNCODE = N'HH',
+				@I_vDOCDATE = '2018-09-04',
+				@I_vCUSTNMBR = 'WEB7979',
+				@I_vCUSTNAME = N'Magento Test',
+				@I_vCSTPONBR = N'000000002',
+				@I_vShipToName = N'Magento Test',
+				@I_vADDRESS1 = N'21 Maiden Ln',
+				@I_vADDRESS2 = N' ',
+				@I_vCNTCPRSN = N'Ignacio Pascual',
+				@I_vCITY = N'New York',
+				@I_vSTATE = N'43',
+				@I_vZIPCODE = N'10038-4088',
+				@I_vCOUNTRY = N'US',
+				@I_vPHNUMBR1 = N'222-456-7890',
+				@I_vSUBTOTAL = 100,
+				@I_vDOCAMNT = 110.50,
+				@I_vBACHNUMB = 'MGT20180904',
+				@O_iErrorState = @O_iErrorState OUTPUT,
+				@oErrString = @oErrString OUTPUT ;
+
+		SELECT	@O_iErrorState as N'@O_iErrorState',
+				@oErrString as N'@oErrString'; 
+		SELECT	'Return Value' = @return_value;
+
+
+
+
+
+		DECLARE	@return_value int,
 				@O_iErrorState int,
 				@oErrString varchar(255);
 
@@ -132,6 +170,34 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 			if (floatval($item['price']) > 0) {
 				$tax = $item['price_incl_tax'] - $item['price'];
 				$query = "
+				DECLARE	@return_value int,
+					@O_iErrorState int,
+					@oErrString varchar(255);
+
+				EXEC	@return_value = taSopLineIvcInsert
+						@I_vSOPTYPE = 2,
+						@I_vSOPNUMBE = N'ORD0362431',
+						@I_vCUSTNMBR = N'WEB7979',
+						@I_vDOCDATE = N'2018-07-24',
+						@I_vITEMNMBR = N'1801-01',
+						@I_vUNITPRCE = 10.00,
+						@I_vXTNDPRCE = 40,
+						@I_vQUANTITY = 4,
+						@I_vReqShipDate = N'2018-07-24',
+						@I_vFUFILDAT = N'1900-01-01',
+						@I_vACTLSHIP = N'1900-01-01',
+						@I_vLOCNCODE = 'HH',
+						@I_vUOFM = 'EA',
+						@O_iErrorState = @O_iErrorState OUTPUT,
+						@oErrString = @oErrString OUTPUT;
+
+				SELECT	@O_iErrorState as N'@O_iErrorState',
+						@oErrString as N'@oErrString';
+
+				SELECT	'Return Value' = @return_value;
+
+
+				
 				DECLARE	@return_value int,
 					@O_iErrorState int,
 					@oErrString varchar(255);
