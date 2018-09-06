@@ -4,6 +4,17 @@ use Sincco\Sfphp\Config\Reader;
 
 class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 
+	private function isOrderCreated($order) {
+		$model = $this->getModel('Default');
+		$query = "SELECT SOPNUMBE, ORIGNUMB FROM SOP10100 WHERE ORIGNUMB='" . $order['increment_id'] . "' AND DOCID='WEB' AND CUSTNMBR='" . $order['CUSTNMBR'] . "';";
+		$data = $model->getData($query);
+		if (count($data) > 0) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 	private function getNextId() {
 		$model = $this->getModel('Default');
 		$number = $model->getData("SELECT * FROM SOP40300 WHERE DOCTYABR = 'ORD';");
@@ -33,6 +44,7 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 
 		$customer = $this->helper('ApiConsumer')->getCustomer($id);
 		$query = "SELECT * FROM CA_vw_Magento_CustomerInformation WHERE CUSTNAME='" . $customer['firstname'] . " " . $customer['lastname'] . "';";
+		// var_dump($query);die();
 		$_customerData = $model->getData($query);
 		if (count($_customerData) > 0) {
 			return "WEB" . $customer['id']; //$_customerData['CUSTNMBR'];
@@ -75,9 +87,11 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 		}
 	}
 
-	private function orderHdr($order) {
+	private function orderHdr($order, $batchid) {
 		$model = $this->getModel('Default');
 		$address = $order['extension_attributes']['shipping_assignments'][0]['shipping']['address'];
+		$order['created_at'] = explode(" ", $order['created_at']);
+		$order['created_at'] = $order['created_at'][0];
 
 		$query = "
 		DECLARE	@return_value int,
@@ -86,72 +100,32 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 		EXEC	@return_value = taSopHdrIvcInsert 
 				@I_vSOPTYPE = 2,
 				@I_vDOCID = N'WEB',
-				@I_vSOPNUMBE = N'ORD0362437',
-				@I_vORIGNUMB = N'000000999',
-				@I_vTAXAMNT = 0,
-				@I_vFREIGHT = 10.50,
+				@I_vSOPNUMBE = N'" . $order['SOPNUMBER'] . "',
+				@I_vORIGNUMB = N'" . $order['increment_id'] . "',
+				@I_vTAXAMNT = " . $order['tax_amount'] . ",
+				@I_vFREIGHT = " . $order['base_shipping_amount'] . ",
 				@I_vLOCNCODE = N'HH',
-				@I_vDOCDATE = '2018-09-04',
-				@I_vCUSTNMBR = 'WEB7979',
-				@I_vCUSTNAME = N'Magento Test',
-				@I_vCSTPONBR = N'000000002',
-				@I_vShipToName = N'Magento Test',
-				@I_vADDRESS1 = N'21 Maiden Ln',
-				@I_vADDRESS2 = N' ',
-				@I_vCNTCPRSN = N'Ignacio Pascual',
-				@I_vCITY = N'New York',
-				@I_vSTATE = N'43',
-				@I_vZIPCODE = N'10038-4088',
-				@I_vCOUNTRY = N'US',
-				@I_vPHNUMBR1 = N'222-456-7890',
-				@I_vSUBTOTAL = 100,
-				@I_vDOCAMNT = 110.50,
-				@I_vBACHNUMB = 'MGT20180904',
+				@I_vDOCDATE = '" . $order['created_at'] . "',
+				@I_vCUSTNMBR = '" . $order['CUSTNMBR'] . "',
+				@I_vCUSTNAME = N'" . $order['customer_firstname'] . " " . $order['customer_lastname'] . "',
+				@I_vCSTPONBR = N'" . $order['increment_id'] . "',
+				@I_vShipToName = N'" . $order['customer_firstname'] . " " . $order['customer_lastname'] . "',
+				@I_vADDRESS1 = N'" . $address['street'][0] . "',
+				@I_vADDRESS2 = N'" . (isset($address['street'][1]) ? $address['street'][1] : " ") . "',
+				@I_vCNTCPRSN = N'" . $order['customer_firstname'] . " " . $order['customer_lastname'] . "',
+				@I_vCITY = N'" . $address['city'] . "',
+				@I_vSTATE = N'" . $address['region_id'] . "',
+				@I_vZIPCODE = N'" . $address['postcode'] . "',
+				@I_vCOUNTRY = N'" . $address['country_id'] . "',
+				@I_vPHNUMBR1 = N'" . $address['telephone'] . "',
+				@I_vSUBTOTAL = " . $order['base_subtotal'] . ",
+				@I_vDOCAMNT = " . $order['total_due'] . ",
+				@I_vBACHNUMB = 'MGT" . $batchid . "',
 				@O_iErrorState = @O_iErrorState OUTPUT,
 				@oErrString = @oErrString OUTPUT ;
 
 		SELECT	@O_iErrorState as N'@O_iErrorState',
 				@oErrString as N'@oErrString'; 
-		SELECT	'Return Value' = @return_value;
-
-
-
-
-
-		DECLARE	@return_value int,
-				@O_iErrorState int,
-				@oErrString varchar(255);
-
-		EXEC	@return_value = taSopHdrIvcInsert
-		@I_vSOPTYPE = 2,
-		@I_vDOCID = N'" . $order['SOPNUMBER'] . "',
-		@I_vSOPNUMBE = N'" . $order['SOPNUMBER'] . "',
-		@I_vORIGNUMB = N'" . $order['increment_id'] . "',
-		@I_vTAXAMNT = " . $order['tax_amount'] . ",
-		@I_vLOCNCODE = N'" . $address['postcode'] . "',
-		@I_vDOCDATE = '" . $order['created_at'] . "',
-		@I_vCUSTNMBR = '" . $order['CUSTNMBR'] . "',
-		@I_vCUSTNAME = N'" . $order['customer_firstname'] . " " . $order['customer_lastname'] . "',
-		@I_vCSTPONBR = N'" . $order['increment_id'] . "',
-		@I_vShipToName = N'" . $order['customer_firstname'] . " " . $order['customer_lastname'] . "',
-		@I_vADDRESS1 = N'" . $address['street'][0] . "',
-		@I_vADDRESS2 = N'" . (isset($address['street'][1]) ? $address['street'][1] : " ") . "',
-		@I_vCNTCPRSN = N'" . $order['customer_firstname'] . " " . $order['customer_lastname'] . "',
-		@I_vCITY = N'" . $address['city'] . "',
-		@I_vSTATE = N'" . $address['region_id'] . "',
-		@I_vZIPCODE = N'" . $address['postcode'] . "',
-		@I_vCOUNTRY = N'" . $address['country_id'] . "',
-		@I_vPHNUMBR1 = N'" . $address['telephone'] . "',
-		@I_vSUBTOTAL = " . $order['base_subtotal_incl_tax'] . ",
-		@I_vDOCAMNT = " . $order['grand_total'] . ",
-		@I_vPYMTRCVD = " . $order['subtotal_incl_tax'] . ",
-		@I_vBACHNUMB = 0,
-		@O_iErrorState = @O_iErrorState OUTPUT,
-		@oErrString = @oErrString OUTPUT
-
-		SELECT	@O_iErrorState as N'@O_iErrorState',
-				@oErrString as N'@oErrString';
-
 		SELECT	'Return Value' = @return_value;";
 
 		$response = $model->getData($query);
@@ -168,36 +142,12 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 		$response = [];
 		foreach ($order['items'] as $item) {
 			if (floatval($item['price']) > 0) {
+				$UOFM = $model->getData("SELECT UOMSCHDL FROM CA_vw_Magento_InventoryItems WHERE ITEMNMBR = '1801-01' AND LOCNCODE='HH';");
+				$UOFM = array_pop($UOFM);
+				$order['created_at'] = explode(" ", $order['created_at']);
+				$order['created_at'] = $order['created_at'][0];
 				$tax = $item['price_incl_tax'] - $item['price'];
 				$query = "
-				DECLARE	@return_value int,
-					@O_iErrorState int,
-					@oErrString varchar(255);
-
-				EXEC	@return_value = taSopLineIvcInsert
-						@I_vSOPTYPE = 2,
-						@I_vSOPNUMBE = N'ORD0362431',
-						@I_vCUSTNMBR = N'WEB7979',
-						@I_vDOCDATE = N'2018-07-24',
-						@I_vITEMNMBR = N'1801-01',
-						@I_vUNITPRCE = 10.00,
-						@I_vXTNDPRCE = 40,
-						@I_vQUANTITY = 4,
-						@I_vReqShipDate = N'2018-07-24',
-						@I_vFUFILDAT = N'1900-01-01',
-						@I_vACTLSHIP = N'1900-01-01',
-						@I_vLOCNCODE = 'HH',
-						@I_vUOFM = 'EA',
-						@O_iErrorState = @O_iErrorState OUTPUT,
-						@oErrString = @oErrString OUTPUT;
-
-				SELECT	@O_iErrorState as N'@O_iErrorState',
-						@oErrString as N'@oErrString';
-
-				SELECT	'Return Value' = @return_value;
-
-
-				
 				DECLARE	@return_value int,
 					@O_iErrorState int,
 					@oErrString varchar(255);
@@ -208,18 +158,21 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 						@I_vCUSTNMBR = N'" . $order['CUSTNMBR'] . "',
 						@I_vDOCDATE = N'" . $order['created_at'] . "',
 						@I_vITEMNMBR = N'" . $item['sku'] . "',
-						@I_vUNITPRCE = " . $item['price'] . ",
-						@I_vXTNDPRCE = " . $item['price'] . ",
+						@I_vUNITPRCE = " . $item['base_price'] . ",
+						@I_vXTNDPRCE = " . $item['row_total'] . ",
 						@I_vQUANTITY = " . $item['qty_ordered'] . ",
-						@I_vTAXAMNT = " . $tax . ",
+						@I_vReqShipDate = N'" . $order['created_at'] . "',
+						@I_vFUFILDAT = N'1900-01-01',
+						@I_vACTLSHIP = N'1900-01-01',
+						@I_vLOCNCODE = 'HH',
+						@I_vUOFM = '" . $UOFM['UOMSCHDL'] . "',
 						@O_iErrorState = @O_iErrorState OUTPUT,
 						@oErrString = @oErrString OUTPUT;
 
 				SELECT	@O_iErrorState as N'@O_iErrorState',
 						@oErrString as N'@oErrString';
 
-				SELECT	'Return Value' = @return_value;
-				";
+				SELECT	'Return Value' = @return_value;";
 				$_response = $model->getData($query);
 				if (isset($_response['ERROR'])) {
 					$this->helper('Log')->log($query);
@@ -235,27 +188,34 @@ class SalesCommand extends Sincco\Sfphp\Abstracts\Command {
 	public function orders () {
 		$this->helper('Log')->log('SYNC :: Orders ================ >>');
 		$orders = $this->helper('ApiConsumer')->getOrders();
-		$next = true;
+		$next = false;
 		foreach ($orders as $order) {
-			if ($next) {
-				$gpId = $this->getNextId();
-			}
-			$this->helper('Log')->log('Register order ' . $order['increment_id'] . ' as ' . $gpId);
 			$order['CUSTNMBR'] = $this->getCustomerId($order['customer_id']);
-			//if ($order['CUSTNMBR']) {
-				$order['SOPNUMBER'] = trim($gpId);
-				//if (
-					$this->orderLine($order);//) {
-					$this->orderHdr($order);
-					$next = true;
+			if (!$this->isOrderCreated($order)) {
+				if ($next) {
+					$gpId = $this->getNextId();
+				}
+				$this->helper('Log')->log('Register order ' . $order['increment_id'] . ' as ' . $gpId);
+				$this->helper('Log')->log('', $order);die();
+
+				//if ($order['CUSTNMBR']) {
+					$order['SOPNUMBER'] = trim($gpId);
+					//if (
+						//$this->orderLine($order);//) {
+						//$this->orderHdr($order);
+						//$next = true;
+					// } else {
+					// 	$next = false;
+					// 	echo '[ERROR] when Register order ' . $order['increment_id'] . ' as ' . $gpId . PHP_EOL;
+					// }
 				// } else {
 				// 	$next = false;
-				// 	echo '[ERROR] when Register order ' . $order['increment_id'] . ' as ' . $gpId . PHP_EOL;
+				// 		echo '[ERROR] when Register customer ' . $order['customer_email'] . ' for order ' . $order['increment_id'] . PHP_EOL;
 				// }
-			// } else {
-			// 	$next = false;
-			// 		echo '[ERROR] when Register customer ' . $order['customer_email'] . ' for order ' . $order['increment_id'] . PHP_EOL;
-			// }
+			} else {
+				$this->helper('Log')->log('Order ' . $order['increment_id'] . ' already created');
+			}
+			die();
 		}
 
 		$model = $this->getModel('Default');
